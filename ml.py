@@ -54,8 +54,7 @@ class ArrangedData(torch.utils.data.Dataset):
         return batch
 
 
-# 텐서형태로 만든 인풋값을 넣고 단어벡터중에서 가장큰값hidden을 사용해
-# 2가지중 분류하는 linear에 넣은것을 반환
+# implementing class for importance prediction
 class PredictImportance(torch.nn.Module):
     def __init__(self, n_vocab):
         super().__init__()
@@ -69,7 +68,7 @@ class PredictImportance(torch.nn.Module):
         return logits
 
 
-# 정답예측정도 측정용함수
+# function for estimating accuracy
 def cal_accuracy(logits, labels):
     _, indices = logits.max(-1)
     mat = torch.eq(indices, labels).cpu().numpy()
@@ -78,7 +77,7 @@ def cal_accuracy(logits, labels):
     return result
 
 
-# 학습진행용 함수
+# function for proceeding learning
 def learn_per_ep(args, model, loader, loss_fn, optimizer):
     model.train()
     losses, access = [], []
@@ -97,7 +96,7 @@ def learn_per_ep(args, model, loader, loss_fn, optimizer):
     return np.mean(losses), np.mean(access)
 
 
-# 평가함수
+# function for evaluating
 def estimate_ep(args, model, loader, loss_fn):
     model.eval()
     losses, access = [], []
@@ -127,13 +126,13 @@ def execute_prediction(word_to_id, model, string):
     return result
 
 
-# ======= voca구현 ========
+# ======= implementing vocabulary ========
 print("please input your id\n")
 tusid = input()
 print("please input your password\n")
 tusps = input()
 
-# 로그인하고 클라스 첫페이지 진입
+# accessing login page and inputing id & pw
 browser = webdriver.Chrome("/usr/local/bin/chromedriver")
 browser.get("https://class.admin.tus.ac.jp/up/faces/login/Com00501A.jsp")
 browser.find_element_by_id("form1:htmlUserId").send_keys(tusid)  # id
@@ -145,15 +144,15 @@ allcontentlist = []
 titlecontentdic = {}
 
 
-# 일단 제목만 다 끌어와서 notice라는 리스트에 저장하는 함수
+# function which scraps all titles & contents
 def getonebulletin(bulletinnum, alltitlelist, allcontentlist):
-    # 한 게시판의 건수저장
+    # saving number of titles per bulletin
     subcontamut = browser.find_element_by_xpath('//*[@id="form1:Poa00201A:htmlParentTable:' + str(bulletinnum) + ':htmlDisplayOfAll:0:htmlCountCol21702"]').text
     subcontamut = subcontamut.rstrip("件")
     subcontamut = subcontamut.lstrip("全")
     subcontamut = int(subcontamut)
 
-    # 더보기 있는지 확인후 있으면 누르고 없으면 bulletin 상태로 notice에 어팬드하고 아래거 실행안하기
+    # checking "more" button. if there is, click it. if not, scrap as it is.
     showall = 1
     try:
         browser.find_element_by_xpath('//*[@id="form1:Poa00201A:htmlParentTable:' + str(bulletinnum) + ':htmlDisplayOfAll:0:htmlCountCol217"]').click()
@@ -162,7 +161,7 @@ def getonebulletin(bulletinnum, alltitlelist, allcontentlist):
             elem = browser.find_element_by_xpath('//*[@id="form1:Poa00201A:htmlParentTable:' + str(bulletinnum) + ':htmlDetailTbl:' + str(i) + ':htmlTitleCol1"]')
             alltitlelist.append(elem.text)
 
-            # 해당 타이틀을 눌러서(클릭하고 좀지나야 핸들리스트에 추가됨) 창을전환후 컨텐트를 allcontentlist에 보존하고 창을 닫고 원래창으로 돌아오기
+            # clicking titles, changing the window and saving contents in allcontentlist
             browser.find_element_by_xpath('//*[@id="form1:Poa00201A:htmlParentTable:'+str(bulletinnum)+':htmlDetailTbl:'+str(i)+':htmlTitleCol1"]').click()
             time.sleep(1)
             browser.switch_to.window(browser.window_handles[1])
@@ -172,7 +171,7 @@ def getonebulletin(bulletinnum, alltitlelist, allcontentlist):
             browser.switch_to.window(browser.window_handles[0])
         showall = 0
 
-    # 더보기가 있어서 누르고난상태이면 제목을 문자열로서 리스트에 저장후 메인화면으로이동, 만약 50번이(개수로는 51개)되는때는 다음버튼누르고 어팬드
+    # if clicked "more" button, scrap all titles and contents and save them to alltitlelist & allcontentlist. Then, go back to main bulletin menu.
     for j in range(subcontamut):
         if showall == 0:
             break
@@ -206,19 +205,20 @@ def getonebulletin(bulletinnum, alltitlelist, allcontentlist):
         browser.find_element_by_xpath('//*[@id="form1:Poa00201A:htmlParentTable:0:htmlHeaderTbl:0:retrurn"]').click()
 
 
-for i in range(12):  # 게시판개수는 0~11
+# executing scraping
+for i in range(12):  # number of bulletin is 0~11
     getonebulletin(i, alltitlelist, allcontentlist)
 
-# 딕셔너리화
+# making dict
 for l in range(len(alltitlelist)):
     titlecontentdic[l] = [alltitlelist[l], allcontentlist[l]]
 
-# 문자열 조작용 리스트 하나 복사
+# copying allcontentlist to make vocabulary
 allcontentlist_copied = allcontentlist.copy()
 allcontentlist_kanjidic = []
 
-# allcontentlist_copied = [게시물전문1, 게시물전문2, ...] 상태인데
-# 각 게시물내용에 대해 히라가나를 전부 |로 바꾸기
+# allcontentlist_copied = [content1, content2, ...]
+# changing all hiragana to "|" for all contents
 for k in range(len(allcontentlist_copied)):
     allcontentlist_copied[k] = allcontentlist_copied[k].replace("あ", "|")
     allcontentlist_copied[k] = allcontentlist_copied[k].replace("い", "|")
@@ -308,10 +308,9 @@ for k in range(len(allcontentlist_copied)):
     allcontentlist_copied[k] = allcontentlist_copied[k].replace("】", "|")
     allcontentlist_copied[k] = allcontentlist_copied[k].replace("＝", "|")
 
-# allcontentlist_copied = [게시|물전문|1, 게시물|전|문2, ...] 상태인데
-# 게시물전문1개 가져와서 |로 끊어주어 리스트로 만들고 해당리스트이름을 allcontentlist_temp로
-# 그 리스트내에서 글자 1개짜리는 또 다시 버리고 리스트화한뒤 allcontentlist_temp화
-# 결과적으로 allcontentlist_temp = ['한자', '한자', '한자', ...]
+# allcontentlist_copied = [co|ten|1, c|t|nt2, ...]
+# cutting contents basing on "|" then make the result to list named allcontentlist_temp
+# allcontentlist_temp = ['漢字', '漢字', '漢字', ...]
 k = 0
 for q in range(len(allcontentlist)):
     allcontentlist_temp = allcontentlist_copied[q].split("|")
@@ -322,23 +321,23 @@ for q in range(len(allcontentlist)):
             allcontentlist_temp[s] = allcontentlist_temp[s].replace(allcontentlist_temp[s], "")
     allcontentlist_temp = ' '.join(allcontentlist_temp).split()
 
-    # allcontentlist_kanjidic = [{},{},...]로 만들기위해 {}하나 먼저 어팬드
+    # making allcontentlist_kanjidic = [{},{},...]
     allcontentlist_kanjidic.append({})
-    # allcontentlist_kanjidic의 첫번째 {}안에 키를 allcontentlist_temp의 첫번째 글자로준뒤 밸류를 0으로한 키:밸류쌍을 추가한다.
+    # appending key:value to allcontentlist_kanjidic from the first element of allcontentlist_temp
     while len(allcontentlist_temp) != 0:
         allcontentlist_kanjidic[k][allcontentlist_temp[0]] = 0
-        # 그뒤 allcontentlist_temp내의 모든 글자에대해 allcontentlist_temp의 첫번째 글자와 같다면 밸류를추가하고
+        # adding 1, if there are same letters
         for i in allcontentlist_temp:
             if i == allcontentlist_temp[0]:
                 allcontentlist_kanjidic[k][allcontentlist_temp[0]] += 1
-        # 그리고 모든 temp에대해 해당 한자를 전부 지운다.
+        # erasing all same letters.
         z = allcontentlist_temp[0]
         while z in allcontentlist_temp:
             allcontentlist_temp.remove(allcontentlist_temp[0])
     k += 1
 
-# 그러면 allcontentlist_kanjidic = [{'한자':3,'한자':1},{'한자':1, '한자':2},...]
-# 모든 키를 일단 letterlist_temp 에 저장한뒤 중복되는 한자 삭제 한것을 words로
+# allcontentlist_kanjidic = [{'漢字':3,'漢字':1},{'漢字':1, '漢字':2},...]
+# copying all keys of allcontentlist_kanjidic, saving them to letterlist_temp, erase same letters between dicts.
 letterlist_temp = []
 for i in range(len(allcontentlist_kanjidic)):
     a = list(allcontentlist_kanjidic[i].keys())
@@ -346,18 +345,18 @@ for i in range(len(allcontentlist_kanjidic)):
 
 words = list(dict.fromkeys(letterlist_temp))
 
-# 그후에 단어당 일련번호를 딕셔너리형태로 word_to_id={단어:0, 단어:1, ...}
-# 반대로 일련번호당 단어를 딕셔너리형태로 id_to_word={0:단어, 1:단어, ...}
+# giving words id. word_to_id={漢字0:0, 漢字1:1, ...}
+# giving id words. id_to_word={0:漢字0, 1:漢字1, ...}
 word_to_id = {"[PAD]": 0, "[UNK]": 1}
 for w in words:
     word_to_id[w] = len(word_to_id)
 
 id_to_word = {i: w for w, i in word_to_id.items()}
-# ======= voca구현 끝 ========
+# ======= end of implementing vocabulary ========
 
-# raw_inputs는 allcontentlist_kanjidic의 반정도의 딕셔너리들을 잡고
-# 각 딕셔너리의 keys만 리스트화시킨다음 그 리스트를 "한자 한자 한자"식으로 문자화시킨다음
-# raw_inputs에 append
+# making lists for machine learning which is named raw_inputs and raw_labels
+# for raw_inputs, get all keys from half of allcontentlist_kanjidic and make them into "漢字 漢字 漢字"
+# and append it to raw_inputs
 raw_inputs = []
 forpred_all_raw_inputs = []
 for i in range(len(allcontentlist_kanjidic)//2):
@@ -368,8 +367,7 @@ for i in range(len(allcontentlist_kanjidic)):
     a = ' '.join(list(allcontentlist_kanjidic[i].keys()))
     forpred_all_raw_inputs.append(a)
 
-# raw_labels = [1, 1, 0, 1, 1, 1]
-# raw_labels는 직접 내가 게시글을 보고 중요도정답을 쓰기
+# for raw_labels, give 1 for important contents and 2 for normal contents
 raw_labels = [1, 1, 0, 1, 1, 1, 1, 1, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
               0, 1, 1, 0, 0, 0, 0, 0, 0, 0,
@@ -389,35 +387,35 @@ for s in raw_inputs:
 labels = raw_labels
 
 
-# 학습용데이터처리
+# data for learning
 dataset = ArrangedData(inputs, labels)
 sampler = torch.utils.data.RandomSampler(dataset)
 train_loader = torch.utils.data.DataLoader(dataset, batch_size=args.n_batch, sampler=sampler, collate_fn=dataset.collate_fn)
 
-# 검증용데이터처리
+# data for verifying
 dataset = ArrangedData(inputs, labels)
 valid_loader = torch.utils.data.DataLoader(dataset, batch_size=args.n_batch, sampler=None, collate_fn=dataset.collate_fn)
 
-# 테스트용데이터처리
+# data for testing
 dataset = ArrangedData(inputs, labels)
 test_loader = torch.utils.data.DataLoader(dataset, batch_size=args.n_batch, sampler=None, collate_fn=dataset.collate_fn)
 
 
-# 학습용모델 만들기
+# making model for learning
 model = PredictImportance(len(word_to_id))
 model.to(args.device)
 
-# loss랑 optimizer생성
+# setting loss and optimizer
 loss_fn = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
 
-# 학습과정용 history, 가장좋은 정확도를 기록할 best_acc 정의
+# recording process in history, saving the best accuracy in max_acc
 records = {"train_loss": [], "train_acc": [], "valid_loss": [], "valid_acc": []}
 max_acc = 0
 
 
-# 학습시작
+# starting learning
 for e in range(args.n_epoch):
     train_loss, train_acc = learn_per_ep(args, model, train_loader, loss_fn, optimizer)
     valid_loss, valid_acc = estimate_ep(args, model, valid_loader, loss_fn)
@@ -435,7 +433,7 @@ for e in range(args.n_epoch):
         )
 
 
-# 배포용 모델작성
+# make model for release
 model = PredictImportance(len(word_to_id))
 model.to(args.device)
 
@@ -443,6 +441,7 @@ save_dict = torch.load(args.save_path)
 model.load_state_dict(save_dict['state_dict'])
 
 
+# saving final results to pickle for create.py
 final_result = []
 for i in forpred_all_raw_inputs:
     final_result.append(execute_prediction(word_to_id, model, i))

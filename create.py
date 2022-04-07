@@ -1,23 +1,8 @@
 # -*- coding: utf-8 -*-
-import requests
-import bs4
-import urllib.request
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 from flask import Flask, render_template, request
-import sys
-import time
 import pickle
 
 application = Flask(__name__)
-
-# # 그러면 allcontentlist_kanjidic = [{'한자':3,'한자':1},{'한자':1, '한자':2},...]
-# # allcontentlist_kanjidic에서 각 딕셔너리중에서 가장 값이 높은것의 한자를 찾아내서 kd의 요소로서 초기화
-# for x in range(len(allcontentlist_kanjidic)):
-#     allcontentlist_kanjidic[x] = max(allcontentlist_kanjidic[x], key=allcontentlist_kanjidic[x].get)
-# # alltitlelist 앞에 [키워드] 식으로 추가해주기
-# for a in range(len(alltitlelist)):
-#     alltitlelist[a] = '《' + allcontentlist_kanjidic[a] + '》' + alltitlelist[a]
 
 with open('final_result.pkl', 'rb') as f:
     final_result_loaded = pickle.load(f)
@@ -42,7 +27,7 @@ for a in range(len(alltitlelist_loaded)):
         allcontentlist_loaded_normal.append(allcontentlist_loaded[a])
 
 
-# 리스트의 모든값을 html에 넣고 위에서부터 차례로 나열
+# insert all the titles and contents to html
 @application.route("/")
 def mainlist():
     usrid = request.args.get('usrid')
@@ -62,3 +47,13 @@ def showcontent_normal(numoftitlelist):
 
 if __name__ == "__main__":
     application.run(host='0.0.0.0')
+
+
+# # 그러면 allcontentlist_kanjidic = [{'한자':3,'한자':1},{'한자':1, '한자':2},...]
+# # allcontentlist_kanjidic에서 각 딕셔너리중에서 가장 값이 높은것의 한자를 찾아내서 kd의 요소로서 초기화
+# for x in range(len(allcontentlist_kanjidic)):
+#     allcontentlist_kanjidic[x] = max(allcontentlist_kanjidic[x], key=allcontentlist_kanjidic[x].get)
+# # alltitlelist 앞에 [키워드] 식으로 추가해주기
+# for a in range(len(alltitlelist)):
+#     alltitlelist[a] = '《' + allcontentlist_kanjidic[a] + '》' + alltitlelist[a]
+
