@@ -122,7 +122,7 @@ def execute_prediction(word_to_id, model, string):
         logits = model(inputs)
         _, indices = logits.max(-1)
         y_pred = indices[0].numpy()
-    result = "중요" if y_pred == 1 else "기타"
+    result = "중요" if y_pred == 1 else "기타"  # "중요" means important, "기타" means normal
     return result
 
 
@@ -367,7 +367,7 @@ for i in range(len(allcontentlist_kanjidic)):
     a = ' '.join(list(allcontentlist_kanjidic[i].keys()))
     forpred_all_raw_inputs.append(a)
 
-# for raw_labels, give 1 for important contents and 2 for normal contents
+# for raw_labels, give 1 for important contents and 0 for normal contents
 raw_labels = [1, 1, 0, 1, 1, 1, 1, 1, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
               0, 1, 1, 0, 0, 0, 0, 0, 0, 0,
