@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <b>{{ thatnumtitle }}</b>
+
+    <hr style="height:2px;border:none;background-color:black;">
+
+    <p>
+    {% autoescape false %}
+    {{ thatnumcontent | replace("\n", "<br/>") }}
+    {% endautoescape %}
+    </p>
+</body>
+</html>
