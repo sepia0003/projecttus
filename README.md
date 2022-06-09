@@ -4,6 +4,7 @@ Auto classification of TUS bulletin(offline & online) contents.
 Please note that you have to download ChromeDriver from https://sites.google.com/chromium.org/driver/downloads and move it to "/usr/local/bin/chromedriver" (MAC)
 
 The website which is powered by this project is http://sepia0003.pythonanywhere.com/
+Temporary id and pw: admin pw1122
 
 1. Please run "preprocessing.py" to make vocabulary with collected and processed data.
 2. Then run "model.py" to make a RNN model.
